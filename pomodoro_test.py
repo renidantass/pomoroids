@@ -1,5 +1,5 @@
 import unittest
-import main
+import pomodoro
 import time
 
 
@@ -8,15 +8,24 @@ class TestPomodoro(unittest.TestCase):
         given    = 3
         expected = 3
 
-        c = main.countdown(given)
-        self.assertEqual(c, expected)
+        total = 0
+
+        for second in pomodoro.countdown(given):
+            total += second
+
+        self.assertEqual(total, expected)
+        self.assertIsInstance(total, int)
 
     def test_countdown_complete(self):
         given    = 3
         expected = 3
 
         started_at = time.time()
-        _ = main.countdown(given)
+        
+        total = 0
+
+        for second in pomodoro.countdown(given):
+            total += second
         ended_at = time.time()
 
         difference = round(ended_at - started_at)
@@ -29,12 +38,14 @@ class TestPomodoro(unittest.TestCase):
         expected_sessions = 1
         expected_short_rest = 0
         expected_long_rest = 1
+        apps = ['insomnia']
 
-        pomodoro_stats = main.pomodoro(
+        pomodoro_stats = pomodoro.pomodoro(
             sessions=session_given, 
             session_time=session_time_given, 
             short_rest_time=short_rest_given, 
-            long_rest_time=long_rest_given
+            long_rest_time=long_rest_given,
+            apps=apps
         )
         
         self.assertEqual(len(pomodoro_stats['sessions']), expected_sessions)

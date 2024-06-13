@@ -2,19 +2,18 @@ from contextlib import redirect_stdout
 from dataclasses import dataclass
 from dacite import from_dict
 from apps import finalizar_processo
+from typing import Generator
 import time
 import json
 
 
-def countdown(seconds: int) -> int:
-    current_elapsed: int = 0
+def countdown(seconds: int) -> Generator:
+    initial_second: int = 0
+    one_second:     int = 1
 
-    while current_elapsed < seconds:
-        print('Seconds elapsed {}'.format(current_elapsed + 1))
-        time.sleep(1)
-        current_elapsed += 1
-    else:
-        return current_elapsed
+    for current_elapsed in range(initial_second, seconds):
+        time.sleep(one_second)
+        yield current_elapsed
 
 def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_time: int, apps: list[str]):
     total_elapsed: int = 0
@@ -28,10 +27,13 @@ def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_t
     for session_number in range(0, sessions):
         print('Session {} in progress'.format(session_number + 1))
 
-        for app in apps:
-            finalizar_processo(app)
+        session_elapsed = 0
 
-        session_elapsed = countdown(session_time)
+        for second in countdown(session_time):
+            session_elapsed += second
+            
+            for app in apps:
+                finalizar_processo(app)
 
         pomodoro_stats['sessions'].append({
             'session_number': session_number + 1,
@@ -45,7 +47,10 @@ def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_t
 
         if session_number < sessions - 1:
             print('Short rest')
-            rest_elapsed = countdown(short_rest_time)
+            rest_elapsed = 0
+
+            for second in countdown(short_rest_time):
+                rest_elapsed += second
 
             pomodoro_stats['short_rest_sessions'].append({
                 'session_number': session_number + 1,
@@ -56,7 +61,10 @@ def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_t
             total_elapsed += rest_elapsed
         else:
             print('Long rest')
-            long_rest_elapsed = countdown(long_rest_time)
+            long_rest_elapsed = 0
+
+            for second in countdown(long_rest_time):
+                long_rest_elapsed += second
 
             pomodoro_stats['long_rest_sessions'].append({
                 'session_number': session_number + 1,
@@ -70,6 +78,7 @@ def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_t
             print(pomodoro_stats)
 
             return pomodoro_stats
+    return {}
 
 @dataclass
 class Blacklist:
@@ -84,6 +93,7 @@ class Settings:
     short_rest_in_seconds: int
     long_rest_in_seconds: int
     blacklist: Blacklist
+
 
 def load_settings() -> Settings:
     settings_filename = 'settings.json'
