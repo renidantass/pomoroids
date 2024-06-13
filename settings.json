@@ -1,0 +1,16 @@
+{
+  "pomodoro": 1,
+  "sessions": 4,
+  "session_time": 10,
+  "short_rest_in_seconds": 5,
+  "long_rest_in_seconds": 5,
+  "blacklist": {
+    "apps": [
+      "Insomnia"
+    ],
+    "sites": [
+      "www.facebook.com", 
+      "www.twitter.com"
+    ]
+  }
+}
