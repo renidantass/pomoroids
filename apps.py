@@ -15,21 +15,23 @@ class OperationalSystem(Enum):
     windows = 'win32'
     mac     = 'darwin'
 
-def finalizar_processo(processo: Processo) -> CompletedProcess:
+def finalizar_processo(processo: Processo) -> int:
     returncode = 0
     platform = sys.platform
 
     match platform:
-        case OperationalSystem.linux:
+        case OperationalSystem.linux.value:
             output = check_output(['pgrep', processo])
             pid = output.decode('utf-8').split('\n')[0]
             returncode = run(['kill', pid]).returncode
             return returncode 
-        case OperationalSystem.windows:
+        case OperationalSystem.windows.value:
             returncode = run(["taskkill", "/F", "/IM", processo]).returncode
             return returncode 
-        case OperationalSystem.mac:
-            pass
+        case OperationalSystem.mac.value:
+            return -1
+        case default:
+            return -1
     
 
 def notificacao_desktop(em_processo: list) -> None:

@@ -1,6 +1,7 @@
 from contextlib import redirect_stdout
 from dataclasses import dataclass
 from dacite import from_dict
+from apps import finalizar_processo
 import time
 import json
 
@@ -15,7 +16,7 @@ def countdown(seconds: int) -> int:
     else:
         return current_elapsed
 
-def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_time: int):
+def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_time: int, apps: list[str]):
     total_elapsed: int = 0
 
     pomodoro_stats = {
@@ -26,6 +27,9 @@ def pomodoro(sessions: int, session_time: int, short_rest_time: int, long_rest_t
 
     for session_number in range(0, sessions):
         print('Session {} in progress'.format(session_number + 1))
+
+        for app in apps:
+            finalizar_processo(app)
 
         session_elapsed = countdown(session_time)
 
@@ -72,7 +76,6 @@ class Blacklist:
     apps: list[str]
     sites: list[str]
 
-
 @dataclass
 class Settings:
     pomodoro: int
@@ -91,10 +94,11 @@ def load_settings() -> Settings:
 
 if __name__ == '__main__':
     settings = load_settings()
-    print(settings)
+
     pm = pomodoro(
         settings.pomodoro, 
         settings.session_time, 
         settings.short_rest_in_seconds, 
-        settings.long_rest_in_seconds
+        settings.long_rest_in_seconds,
+        settings.blacklist.apps
     )

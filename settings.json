@@ -6,7 +6,7 @@
   "long_rest_in_seconds": 5,
   "blacklist": {
     "apps": [
-      "Insomnia"
+      "insomnia"
     ],
     "sites": [
       "www.facebook.com", 
