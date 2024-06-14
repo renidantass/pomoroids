@@ -21,10 +21,13 @@ def finalizar_processo(processo: Processo) -> int:
 
     match platform:
         case OperationalSystem.linux.value:
-            output = check_output(['pgrep', processo])
-            pid = output.decode('utf-8').split('\n')[0]
-            returncode = run(['kill', pid]).returncode
-            return returncode 
+            try:
+                output = check_output(['pgrep', processo])
+                pid = output.decode('utf-8').split('\n')[0]
+                returncode = run(['kill', pid]).returncode
+                return returncode 
+            except Exception: 
+                return -1
         case OperationalSystem.windows.value:
             returncode = run(["taskkill", "/F", "/IM", processo]).returncode
             return returncode 

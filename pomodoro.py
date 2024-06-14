@@ -8,10 +8,11 @@ import json
 
 
 def countdown(seconds: int) -> Generator:
-    initial_second: int = 0
+    initial_second: int = 1
     one_second:     int = 1
 
-    for current_elapsed in range(initial_second, seconds):
+    for current_elapsed in range(initial_second, seconds + 1):
+        print('Tempo decorrido {} segundo(s)'.format(current_elapsed))
         time.sleep(one_second)
         yield current_elapsed
 
