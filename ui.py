@@ -1,118 +1,190 @@
 import customtkinter as ctk
+import pomodoro
+import enum
 from math import ceil
 
-    
-def formatar(segundos: int = 0):
-    
-    segundos_: int = segundos
-    minutos: int = 0
-    horas: int = 0
 
-    while True:
-        match segundos_:
-            case segundos_ if segundos_ >= 3600:
-                segundos_ -= 3600
-                horas += 1
-        
-            case segundos_ if segundos_ >= 60:
-                segundos_ -= 60
-                minutos += 1
-            
-            case _:
-                break
+class AppStates(enum.Enum):
+    STOPPED    = 'Iniciar'
+    IN_SESSION = 'Em sessão'
+    IN_REST    = 'Em descanso'
+    PAUSED     = 'Pausado'
 
-    horas_formatadas = f"0{horas}" if horas < 10 else f"{horas}"
-    minutos_formatados = f"0{minutos}" if minutos < 10 else f"{minutos}"
-    segundos_formatados = f"0{ceil(segundos_)}" if ceil(segundos_) < 10 else f"{ceil(segundos_)}"
 
-    tempo_com_horas = f"{horas_formatadas} : {minutos_formatados} : {segundos_formatados}"
-    tempo_sem_horas = f"{minutos_formatados} : {segundos_formatados}"
-    return tempo_com_horas if horas else tempo_sem_horas
+class AppState:
+    last_state    = AppStates.PAUSED.value
+    current_state = AppStates.PAUSED.value
 
 
 class App(ctk.CTkFrame):
-    def __init__(self,
-                 master: ctk.CTk) -> None:
+    __master = ctk.CTk()
+    __state  = AppState()
+
+    def __init__(self, title: str, size: tuple) -> None:
+        self.__state.current_state = AppStates.STOPPED.value
         
-        self.master = master
-        self.master.geometry("640x480")
-        self.master.resizable(False, False)
-        self.master.wm_title("Pomoroids")
+        self.__sessions_iter  = pomodoro.create_sessions(3, 4, 2, 3)
+        self.__current_session = next(self.__sessions_iter)
+        self.__elapsed = self.__current_session['countdown'] 
+ 
+        self.__master.wm_geometry("{}x{}".format(size[0], size[1]))
+        self.__master.minsize(size[0], size[1])
+        self.__master.resizable(True, True)
+        self.__master.wm_title(title)
 
-        self.pause_ = False
-        self.timer_counter = 0
-        self.sessions = 4
-        self.actual_session = 1
-        self.session_time = 5
-        self.short_rest_time = 5
+        self.__render_home_screen()
 
-        self.clock = self.session_time
+    def __render_home_screen(self):
+        self.settings_btn = ctk.CTkButton(self.__master,
+                                    text="⚙",
+                                    command=lambda: print('settings pressed!'),
+                                    fg_color='transparent',
+                                    width=24,
+                                    height=24,
+                                    corner_radius=20)
 
-        # Labels
-        self.header_label = ctk.CTkLabel(self.master,
-                                         text=self.text_actual_session(self.sessions, self.actual_session),
+        self.settings_btn.place(relx=0.9, rely=0.1, anchor="center")
+
+        self.header_label = ctk.CTkLabel(self.__master,
+                                         text=self.__state.current_state,
                                          font=("Halvetica bold", 26))
-        self.timer_label = ctk.CTkLabel(self.master,
-                                        text=formatar(self.clock),
-                                        font=("Halvetica bold", 26))
-
-        # Labels positions
-        self.timer_label.place(relx=0.5, rely=0.4, anchor="center")
+       
         self.header_label.place(relx=0.5, rely=0.3, anchor="center")
 
-        self.button = ctk.CTkButton(self.master,
-                                    text="start",
-                                    command=self.start_timer,
+        self.timer_label = ctk.CTkLabel(self.__master,
+                                        text=self.__format(next(self.__elapsed)),
+                                        font=("Halvetica bold", 26))
+
+        self.timer_label.place(relx=0.5, rely=0.4, anchor="center")
+
+        self.button = ctk.CTkButton(self.__master,
+                                    text="Iniciar",
+                                    command=self.toggle,
                                     corner_radius=20)
+
         self.button.place(relx=0.5, rely=0.6, anchor="center")
     
-    def text_actual_session(self,
-                            sessions,
-                            actual_session):
-        return f"Sessão {actual_session} de {sessions}"
+    def __refresh_home_screen(self):
+        session_number = self.__current_session['current_session']
+        sessions_length = self.__current_session['sessions']
 
-    def start_timer(self):
+        self.button.configure(text=self.get_text_button())
 
-        if float(self.clock) >= 0:
-            decremento = 1 if self.timer_counter == 30 else 0
-            self.clock = float(self.clock) - decremento
-            self.formated_timer = formatar(self.clock)
-            self.timer_label.configure(text=self.formated_timer)
+        if self.__state.current_state == AppStates.PAUSED.value:
+            return
 
-            self.change_text()
+        self.header_label.configure(text=self.__state.current_state + ' ' + str(session_number) + ' de ' + str(sessions_length))
+        self.__master.after(500, self.__refresh_home_screen)
 
-            if not self.pause_:
-                self.timer_label.after(33, self.start_timer)
-                self.timer_counter = (self.timer_counter + 1) if self.timer_counter < 30 else 0
-        else:
+    def __refresh_all_screen(self):
+        self.__master.after(200, self.__refresh_home_screen)
+        self.timer_label.after(1000, self.__in_timer)
+
+    def __draw_restart_button(self):
+        self.restart_btn = ctk.CTkButton(self.__master,
+                                    text="Reiniciar",
+                                    command=self.__restart_pomodoro,
+                                    corner_radius=20)
+
+        self.restart_btn.place(relx=0.5, rely=0.7, anchor="center")
+
+
+    def __format(self, segundos: int = 0):
+        segundos_: int = segundos
+        minutos: int = 0
+        horas: int = 0
+
+        while True:
+            match segundos_:
+                case segundos_ if segundos_ >= 3600:
+                    segundos_ -= 3600
+                    horas += 1
             
-            self.actual_session += 1
-            self.clock = self.session_time
-            self.timer_label.configure(text=formatar(segundos=self.clock))
-            self.header_label.configure(text=self.text_actual_session(sessions=self.sessions, actual_session=self.actual_session))
-            self.button.configure(text="Start")
-            self.button.configure(command=self.start_timer)
+                case segundos_ if segundos_ >= 60:
+                    segundos_ -= 60
+                    minutos += 1
+                
+                case _:
+                    break
 
-    def change_text(self):
-        match self.pause_:
-            case False:
-                self.button.configure(text="Pause",
-                                        command=self.pause)
+        horas_formatadas = f"0{horas}" if horas < 10 else f"{horas}"
+        minutos_formatados = f"0{minutos}" if minutos < 10 else f"{minutos}"
+        segundos_formatados = f"0{ceil(segundos_)}" if ceil(segundos_) < 10 else f"{ceil(segundos_)}"
 
-            case True:
-                self.button.configure(text="Start",
-                                        command=self.pause)
+        tempo_com_horas = f"{horas_formatadas} : {minutos_formatados} : {segundos_formatados}"
+        tempo_sem_horas = f"{minutos_formatados} : {segundos_formatados}"
+        return tempo_com_horas if horas else tempo_sem_horas
 
-    def pause(self):
-        match self.pause_:
-            case True:
-                self.pause_ = False
-                self.timer_label.after(33, self.start_timer)
-            case False:
-                self.pause_ = True
+    def __restart_pomodoro(self):
+        print('Reiniciado')
+        self.__sessions_iter  = pomodoro.create_sessions(3, 4, 2, 3)
+        self.__current_session = next(self.__sessions_iter)
+        self.__elapsed = self.__current_session['countdown']
+        final_elapsed = self.__format(next(self.__elapsed))
+        self.timer_label.configure(text=final_elapsed)
+        self.__state.current_state = AppStates.STOPPED.value
 
+    
+    def toggle(self):
+        match self.__state.current_state:
+            case AppStates.STOPPED.value:
+                # NOTE: Começa a sessão
+                self.__state.current_state = AppStates.STOPPED.value
+                self.__state.current_state = AppStates.IN_SESSION.value
+                self.__refresh_all_screen()
+                self.__draw_restart_button()
+            case AppStates.PAUSED.value:
+                # NOTE: Retoma a sessão/descanso
+                self.__state.current_state = self.__state.last_state
+                self.__refresh_all_screen()
+                self.__draw_restart_button()
+            case AppStates.IN_SESSION.value: 
+                # NOTE: Pausa a sessão/decanso
+                self.__state.last_state = AppStates.IN_SESSION.value
+                self.__state.current_state = AppStates.PAUSED.value
+            case AppStates.IN_REST.value:
+                self.__state.last_state = AppStates.IN_REST.value
+                self.__state.current_state = AppStates.PAUSED.value
+
+    def __in_timer(self):
+        match self.__state.current_state:
+            case AppStates.IN_SESSION.value | AppStates.IN_REST.value:
+                try:
+                    raw_elapsed   = next(self.__elapsed)
+                    final_elapsed = self.__format(raw_elapsed)
+                    self.timer_label.configure(text=final_elapsed)
+                    self.timer_label.after(1000, self.__in_timer)
+                except StopIteration:
+                    try:
+                        self.__state.last_state = AppStates.IN_SESSION.value
+                        self.__state.current_state = AppStates.IN_REST.value
+                        raw_elapsed, description = next(self.__current_session['rest'])
+                        print('Descanso: {}'.format(description))
+                        final_elapsed = self.__format(raw_elapsed)
+                        self.timer_label.configure(text=final_elapsed)
+                        self.timer_label.after(1000, self.__in_timer)
+                    except StopIteration:
+                        self.__state.last_state = AppStates.IN_REST.value
+                        self.__state.current_state = AppStates.IN_SESSION.value
+                        self.__current_session = next(self.__sessions_iter)
+                        self.__elapsed = self.__current_session['countdown']
+                        raw_elapsed   = next(self.__elapsed)
+                        final_elapsed = self.__format(raw_elapsed)
+                        self.timer_label.configure(text=final_elapsed)
+                        self.timer_label.after(1000, self.__in_timer)
+
+    def get_text_button(self):
+        match self.__state.current_state:
+            case AppStates.STOPPED.value:
+                return 'Iniciar'
+            case AppStates.PAUSED.value:
+                return 'Retomar'
+            case AppStates.IN_SESSION.value | AppStates.IN_REST.value:
+                return 'Pausar'
+
+    def run(self):
+        self.__master.mainloop()
 
 if __name__ == "__main__":
-    app = ctk.CTk()
-    master = App(master=app)
-    app.mainloop()
+    app = App(title='Pomoroids', size=(480, 480))
+    app.run()

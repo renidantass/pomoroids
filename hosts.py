@@ -1,6 +1,3 @@
-import os
-
-
 HOSTS_FILE_PATH = '/etc/hosts'
 
 def spell_url(url: str):
