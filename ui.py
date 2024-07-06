@@ -1,7 +1,12 @@
 import customtkinter as ctk
 import pomodoro
 import enum
+import json
+import apps
 from math import ceil
+from dacite import from_dict
+from dataclasses import dataclass
+
 
 
 class AppStates(enum.Enum):
@@ -15,6 +20,20 @@ class AppState:
     last_state    = AppStates.PAUSED.value
     current_state = AppStates.PAUSED.value
 
+@dataclass
+class Blacklist:
+    apps: list[str]
+    sites: list[str]
+
+@dataclass
+class Settings:
+    pomodoro: int
+    sessions: int
+    session_time: int
+    short_rest_in_seconds: int
+    long_rest_in_seconds: int
+    blacklist: Blacklist
+
 
 class App(ctk.CTkFrame):
     __master = ctk.CTk()
@@ -22,8 +41,13 @@ class App(ctk.CTkFrame):
 
     def __init__(self, title: str, size: tuple) -> None:
         self.__state.current_state = AppStates.STOPPED.value
+        self.__settings = self.__load_settings()
         
-        self.__sessions_iter  = pomodoro.create_sessions(3, 4, 2, 3)
+        self.__sessions_iter  = pomodoro.create_sessions(self.__settings.sessions, 
+                                                        self.__settings.session_time, 
+                                                        self.__settings.short_rest_in_seconds, 
+                                                        self.__settings.long_rest_in_seconds)
+
         self.__current_session = next(self.__sessions_iter)
         self.__elapsed = self.__current_session['countdown'] 
  
@@ -88,6 +112,11 @@ class App(ctk.CTkFrame):
 
         self.restart_btn.place(relx=0.5, rely=0.7, anchor="center")
 
+    def __load_settings(self) -> Settings:
+        settings_filename = 'settings.json'
+        with open(settings_filename, 'r') as file:
+            data = json.load(file)
+            return from_dict(data_class=Settings, data=data)
 
     def __format(self, segundos: int = 0):
         segundos_: int = segundos
@@ -150,6 +179,10 @@ class App(ctk.CTkFrame):
         match self.__state.current_state:
             case AppStates.IN_SESSION.value | AppStates.IN_REST.value:
                 try:
+                    if self.__state.current_state == AppStates.IN_SESSION.value:
+                        for app in self.__settings.blacklist.apps:
+                            apps.finalizar_processo(app)
+
                     raw_elapsed   = next(self.__elapsed)
                     final_elapsed = self.__format(raw_elapsed)
                     self.timer_label.configure(text=final_elapsed)

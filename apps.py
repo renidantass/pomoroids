@@ -16,6 +16,8 @@ def finalizar_processo(processo: Processo) -> int:
     returncode = -1
     platform   = sys.platform
 
+    print(f'A finalizar {processo}')
+
     try:
         match platform:
             case OperatingSystem.linux.value:
