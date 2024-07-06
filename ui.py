@@ -164,14 +164,17 @@ class App(ctk.CTkFrame):
                         self.timer_label.configure(text=final_elapsed)
                         self.timer_label.after(1000, self.__in_timer)
                     except StopIteration:
-                        self.__state.last_state = AppStates.IN_REST.value
-                        self.__state.current_state = AppStates.IN_SESSION.value
-                        self.__current_session = next(self.__sessions_iter)
-                        self.__elapsed = self.__current_session['countdown']
-                        raw_elapsed   = next(self.__elapsed)
-                        final_elapsed = self.__format(raw_elapsed)
-                        self.timer_label.configure(text=final_elapsed)
-                        self.timer_label.after(1000, self.__in_timer)
+                        try:
+                            self.__state.last_state = AppStates.IN_REST.value
+                            self.__state.current_state = AppStates.IN_SESSION.value
+                            self.__current_session = next(self.__sessions_iter)
+                            self.__elapsed = self.__current_session['countdown']
+                            raw_elapsed   = next(self.__elapsed)
+                            final_elapsed = self.__format(raw_elapsed)
+                            self.timer_label.configure(text=final_elapsed)
+                            self.timer_label.after(1000, self.__in_timer)
+                        except StopIteration:
+                            self.__restart_pomodoro()
 
     def get_text_button(self):
         match self.__state.current_state:
