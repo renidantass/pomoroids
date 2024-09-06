@@ -1,8 +1,11 @@
+import api
 import customtkinter as ctk
 import pomodoro
 import enum
 import json
 import apps
+import uvicorn
+from threading import Thread
 from math import ceil
 from dacite import from_dict
 from dataclasses import dataclass
@@ -221,6 +224,12 @@ class App(ctk.CTkFrame):
     def run(self):
         self.__master.mainloop()
 
+def run_server():
+    app = api.app
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
 if __name__ == "__main__":
     app = App(title='Pomoroids', size=(480, 480))
+    thread = Thread(target=run_server, args=())
+    thread.start()
     app.run()

@@ -1,9 +1,9 @@
 {
   "pomodoro": 1,
-  "sessions": 4,
-  "session_time": 10,
-  "short_rest_in_seconds": 50,
-  "long_rest_in_seconds": 50,
+  "sessions": 2,
+  "session_time": 2,
+  "short_rest_in_seconds": 1,
+  "long_rest_in_seconds": 2,
   "blacklist": {
     "apps": [
       "insomnia"
