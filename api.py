@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from json import loads
+from state import AppStates, GLOBAL_STATE
 
 app = FastAPI()
 
@@ -20,3 +22,11 @@ def read_settings():
         data = ''.join(f.readlines())
         return loads(data)
 
+@app.get('/status')
+def read_status():
+    print(GLOBAL_STATE.current_state)
+
+    if GLOBAL_STATE.current_state == AppStates.IN_SESSION.value:
+        return JSONResponse(content={ 'status': True })
+
+    return JSONResponse(content={ 'status': False })
